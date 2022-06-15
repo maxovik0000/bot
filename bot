@@ -1,0 +1,56 @@
+import os
+from telebot import TeleBot
+import youtube_dl
+
+bot = TeleBot('')
+link = ''
+view = ''
+def Down_You(link, view):
+    ydl_opts = {
+        'format': 'best' if view == 1 else 'bestaudio/best',
+        'outtmpl': f'download\\Video_Youtube.mp4' if view == 1 else f'download\\Audio_Youtube.mp3'
+    }
+    path = f'{os.getcwd()}\\download'
+    if os.path.exists(path):
+        for i in os.listdir(path):
+            os.remove(f'{path}\\{i}')
+        with youtube_dl.YoutubeDL(ydl_opts) as you:
+            you.download([link])
+    else:
+        with youtube_dl.YoutubeDL(ydl_opts) as you:
+            you.download([link])
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    m = bot.send_message(message.from_user.id, 'Дай ссылку, а я видео')
+    path = f'{os.getcwd()}\\download'
+    if os.path.exists(path):
+        for i in os.listdir(path):
+            os.remove(f'{path}\\{i}')
+    bot.register_next_step_handler(m, linkiii)
+@bot.message_handler(content_types=['text'])
+def linkiii(message):
+    global link
+    link = message.text
+    m = bot.send_message(message.from_user.id, 'Выбирете формат: аудио или видео')
+    bot.register_next_step_handler(m, format)
+def format(message):
+    global view
+    try:
+        if message.text.lower() == 'видео':
+            view = 1
+            Down_You(link=link, view=view)
+            bot.send_video(message.from_user.id, open(f'{os.getcwd()}\\download\\Video_Youtube.mp4', 'rb'))
+            bot.send_message(message.from_user.id, '------- Загрузка окончена -------')
+        elif message.text.lower() == 'аудио':
+            view = 0
+            Down_You(link=link, view=view)
+            bot.send_audio(message.from_user.id, open(f'{os.getcwd()}\\download\\Audio_Youtube.mp3', 'rb'))
+            bot.send_message(message.from_user.id, '------- Загрузка окончена -------')
+        else:
+            bot.send_message(message.from_user.id, 'Введите формат правильно')
+    except:
+        bot.send_message(message.from_user.id, 'попробуйте еще раз')
+
+bot.polling()
